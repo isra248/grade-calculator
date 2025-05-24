@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Final Grade Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="number"] {
+      width: 130px;
+      padding: 8px;
+      font-size: 15px;
+      margin-right: 10px;
+      margin-top: 5px;
+    }
+    .component-row {
+      margin-top: 10px;
+    }
+    .button {
+      margin-top: 20px;
+      padding: 10px 18px;
+      font-size: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+    }
+    .remove-btn {
+      background-color: #dc3545;
+      margin-left: 10px;
+    }
+    #result {
+      margin-top: 25px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Final Grade Calculator</h2>
+
+<label>What do you want to calculate?</label>
+<select id="calculationMode">
+  <option value="needed">How much do I need in the final?</option>
+  <option value="success">Did I pass?</option>
+</select>
+
+<div id="inputFields">
+  <label for="passPercentage">Passing percentage (overall):</label>
+  <input type="number" id="passPercentage" min="0" max="100" value="50" />
+
+  <label for="finalWeight">Final exam weight (%):</label>
+  <input type="number" id="finalWeight" min="0" max="100" />
+
+  <div id="components-container"></div>
+  <button type="button" class="button" onclick="addComponent()">+ Add Component</button>
+</div>
+
+<div id="finalGradeInput" style="display: none;">
+  <label for="finalGrade">Your final exam grade (%):</label>
+  <input type="number" id="finalGrade" min="0" max="100" />
+</div>
+
+<button class="button" onclick="calculateResult()">Calculate</button>
+
+<div id="result"></div>
+
+<script>
+  const modeSelect = document.getElementById('calculationMode');
+  const finalGradeDiv = document.getElementById('finalGradeInput');
+  const componentsContainer = document.getElementById('components-container');
+
+  modeSelect.addEventListener('change', () => {
+    finalGradeDiv.style.display = modeSelect.value === 'success' ? 'block' : 'none';
+  });
+
+  function addComponent(name = '', grade = '', weight = '') {
+    const div = document.createElement('div');
+    div.classList.add('component-row');
+    div.innerHTML = `
+      <input type="text" placeholder="Component name" value="${name}" required />
+      <input type="number" placeholder="Grade (0-100)" min="0" max="100" value="${grade}" required />
+      <input type="number" placeholder="Weight (%)" min="0" max="100" value="${weight}" required />
+      <button type="button" class="button remove-btn" onclick="this.parentElement.remove()">Remove</button>
+    `;
+    componentsContainer.appendChild(div);
+  }
+
+  addComponent('Quiz', '', '20');
+  addComponent('Midterm', '', '30');
+
+  function calculateResult() {
+    const mode = modeSelect.value;
+    const passPercent = parseFloat(document.getElementById('passPercentage').value);
+    const finalWeight = parseFloat(document.getElementById('finalWeight').value);
+    const finalGrade = parseFloat(document.getElementById('finalGrade').value);
+    const components = [];
+
+    for (const row of componentsContainer.children) {
+      const inputs = row.getElementsByTagName('input');
+      const name = inputs[0].value.trim();
+      const grade = parseFloat(inputs[1].value);
+      const weight = parseFloat(inputs[2].value);
+      if (!name || isNaN(grade) || isNaN(weight)) {
+        alert('Please fill out all component fields correctly.');
+        return;
+      }
+      components.push({ name, grade, weight });
+    }
+
+    const sumWeights = components.reduce((sum, c) => sum + c.weight, 0);
+    if (finalWeight + sumWeights !== 100) {
+      alert(`Total weights must equal 100%. Now: ${finalWeight + sumWeights}%`);
+      return;
+    }
+
+    const weightedSum = components.reduce((sum, c) => sum + (c.grade * c.weight / 100), 0);
+
+    if (mode === 'needed') {
+      let needed = (passPercent - weightedSum) * 100 / finalWeight;
+      needed = Math.max(needed, 0);
+
+      if (needed > 100) {
+        document.getElementById('result').innerText = `You cannot pass even with a perfect final. You need ${needed.toFixed(2)}%.`;
+      } else if (needed < 35) {
+        document.getElementById('result').innerText = `You need at least 35 in the final to pass, even though calculated needed grade is ${needed.toFixed(2)}%.`;
+      } else {
+        document.getElementById('result').innerText = `You need ${needed.toFixed(2)}% in the final exam to pass.`;
+      }
+    } else {
+      if (isNaN(finalGrade)) {
+        alert('Please enter your final exam grade.');
+        return;
+      }
+      const totalGrade = weightedSum + (finalGrade * finalWeight / 100);
+
+      if (finalGrade < 35) {
+        document.getElementById('result').innerText = `You failed because your final grade is less than 35.`;
+      } else if (totalGrade >= passPercent) {
+        document.getElementById('result').innerText = `You passed! Your total grade is ${totalGrade.toFixed(2)}%.`;
+      } else {
+        document.getElementById('result').innerText = `You did not pass. Your total grade is ${totalGrade.toFixed(2)}%.`;
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
